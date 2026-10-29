@@ -94,25 +94,21 @@ dictation, mirrored live to the Mac, plus an Esc/Tab/arrows/⌘/Done row); a **s
 
 ## Putting the Mac app on your personal laptop (notarized DMG)
 
-> **Status:** the release script (`scripts/release-mac.sh`) is **not written yet**: this Mac has no
-> *Developer ID Application* certificate (`security find-identity -v -p codesigning` lists only
-> *Apple Development* identities). Do the two one-time steps below, then it can be added.
+One-time setup (done): a *Developer ID Application* certificate in the login keychain, and a notarytool
+keychain profile named `couchremote` (`xcrun notarytool store-credentials couchremote` with an
+app-specific password from account.apple.com; the script never sees any password).
 
-1. **Create the certificate** (Account Holder / Admin role required): Xcode → Settings → Accounts → select
-   your team → **Manage Certificates…** → **+** → **Developer ID Application**. Afterwards
-   `security find-identity -v -p codesigning` should list `Developer ID Application: … (5PYDBJJN92)`.
-2. **Store notarization credentials** (run this yourself; never share the password):
-   create an app-specific password at account.apple.com → Sign-In and Security → App-Specific Passwords, then
-   ```sh
-   xcrun notarytool store-credentials couchremote \
-     --apple-id "<your Apple ID email>" --team-id 5PYDBJJN92 --password "<app-specific password>"
-   ```
+```sh
+scripts/release-mac.sh        # needs a clean git tree; takes ~5-15 min (two notarizations)
+```
 
-The script will: `xcodegen generate` → `xcodebuild archive` (Release) → `-exportArchive` with a
-`developer-id` ExportOptions (Hardened Runtime on, no get-task-allow) → `notarytool submit … --wait` →
-`stapler staple` the app → build the DMG (app + Applications link) → notarize + staple the DMG →
-`dist/CouchRemote-<version>.dmg`, and it will refuse to run with uncommitted changes. The version is
-`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml` (currently 0.2.0 / 2).
+It runs `xcodegen generate` -> `xcodebuild archive` (Release) -> `-exportArchive` with
+`scripts/ExportOptions.plist` (`developer-id`, Hardened Runtime on, no get-task-allow) -> checks the
+signature/entitlements -> `notarytool submit --wait` -> `stapler staple` the app -> builds the DMG (app +
+Applications link), signs it, notarizes and staples it too -> a final Gatekeeper check ->
+`dist/CouchRemote-<version>.dmg`. It refuses to run with uncommitted changes. The version is
+`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml`: bump it before each release. AirDrop the
+DMG to the other Mac; because it is stapled it opens without Gatekeeper warnings, even offline.
 
 ### First launch on the personal Mac
 
