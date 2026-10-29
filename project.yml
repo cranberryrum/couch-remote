@@ -1,0 +1,71 @@
+name: CouchRemote
+
+options:
+  bundleIdPrefix: com.adityakolte.couchremote
+  deploymentTarget:
+    macOS: "14.0"
+    iOS: "17.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    DEVELOPMENT_TEAM: 5PYDBJJN92
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+packages:
+  RemoteKit:
+    path: Packages/RemoteKit
+
+targets:
+  RemoteMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: RemoteMac
+    dependencies:
+      - package: RemoteKit
+    info:
+      path: RemoteMac/Info.plist
+      properties:
+        CFBundleName: CouchRemote
+        CFBundleDisplayName: CouchRemote
+        LSUIElement: true
+        NSLocalNetworkUsageDescription: CouchRemote listens for your iPhone on the local network.
+        NSBonjourServices:
+          - _couchremote._tcp
+    settings:
+      base:
+        PRODUCT_NAME: CouchRemote
+        PRODUCT_BUNDLE_IDENTIFIER: com.adityakolte.couchremote.mac
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: YES
+
+  RemoteiPhone:
+    type: application
+    platform: iOS
+    sources:
+      - path: RemoteiPhone
+    dependencies:
+      - package: RemoteKit
+    info:
+      path: RemoteiPhone/Info.plist
+      properties:
+        CFBundleName: CouchRemote
+        CFBundleDisplayName: CouchRemote
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSLocalNetworkUsageDescription: CouchRemote connects to your Mac on the local network to control it.
+        NSBonjourServices:
+          - _couchremote._tcp
+    settings:
+      base:
+        PRODUCT_NAME: CouchRemote
+        PRODUCT_BUNDLE_IDENTIFIER: com.adityakolte.couchremote.ios
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
