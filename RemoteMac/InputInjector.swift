@@ -7,6 +7,8 @@ import RemoteKit
 final class InputInjector {
     /// Flip if scrolling feels backwards once tested on the Mac.
     private static let invertScroll = false
+    /// UTF-16 units per synthesized keyboard event (CGEvent's practical limit).
+    private static let maxUnitsPerTextEvent = 20
 
     private let source = CGEventSource(stateID: .hidSystemState)
     private var heldButton: MouseButton?
@@ -27,11 +29,24 @@ final class InputInjector {
             scroll(dx: CGFloat(dx), dy: CGFloat(dy), phase: phase)
         case .media(let key):
             postMedia(key)
-        case .key(let key):
-            postKey(key)
-        case .hello, .ping, .pong:
+        case .key(let key, let modifiers):
+            postKey(key, modifiers: modifiers)
+        case .text(let text):
+            type(text)
+        case .hello, .welcome, .sleepTimer, .macStatus, .disconnect, .ping, .pong:
             break // handled by the transport
         }
+    }
+
+    /// Called whenever a phone goes away (disconnect, replacement, forget, sleep) so a
+    /// dropped link can never leave a button stuck down. Modifiers are never "held": they are
+    /// applied as flags on each key event, so there is nothing to release for them.
+    func releaseAll() {
+        if let button = heldButton {
+            heldButton = nil
+            postMouse(button, down: false, at: currentPointer(), clickState: 1)
+        }
+        scrollRemainder = .zero
     }
 
     // MARK: Pointer
@@ -66,6 +81,7 @@ final class InputInjector {
     private func setButton(_ button: MouseButton, down: Bool) {
         let point = currentPointer()
         if down {
+            guard heldButton == nil else { return }
             heldButton = button
         } else if heldButton == button {
             heldButton = nil
@@ -132,16 +148,91 @@ final class InputInjector {
 
     // MARK: Keys
 
-    private func postKey(_ key: KeyCode) {
-        let virtualKey: CGKeyCode
+    /// ANSI virtual key codes (kVK_*).
+    private static func virtualKey(for key: KeyCode) -> CGKeyCode {
         switch key {
-        case .arrowLeft: virtualKey = 123
-        case .arrowRight: virtualKey = 124
-        case .space: virtualKey = 49
+        case .arrowLeft: 123
+        case .arrowRight: 124
+        case .arrowDown: 125
+        case .arrowUp: 126
+        case .space: 49
+        case .return: 36
+        case .tab: 48
+        case .backspace: 51
+        case .escape: 53
+        case .f: 3
+        case .m: 46
+        case .c: 8
+        case .k: 40
+        case .j: 38
+        case .l: 37
+        case .t: 17
+        case .w: 13
         }
+    }
+
+    private static func flags(for modifiers: KeyModifiers) -> CGEventFlags {
+        var flags: CGEventFlags = []
+        if modifiers.contains(.command) { flags.insert(.maskCommand) }
+        if modifiers.contains(.shift) { flags.insert(.maskShift) }
+        if modifiers.contains(.control) { flags.insert(.maskControl) }
+        if modifiers.contains(.option) { flags.insert(.maskAlternate) }
+        return flags
+    }
+
+    private func postKey(_ key: KeyCode, modifiers: KeyModifiers) {
+        let virtualKey = Self.virtualKey(for: key)
+        // Set flags explicitly so a modifier physically held on the Mac can't leak in.
+        let flags = Self.flags(for: modifiers)
         for down in [true, false] {
-            CGEvent(keyboardEventSource: source, virtualKey: virtualKey, keyDown: down)?.post(tap: .cghidEventTap)
+            guard let event = CGEvent(keyboardEventSource: source, virtualKey: virtualKey, keyDown: down) else { continue }
+            event.flags = flags
+            event.post(tap: .cghidEventTap)
         }
+    }
+
+    /// Types arbitrary Unicode (emoji, any language) via `keyboardSetUnicodeString`.
+    /// Newlines and tabs become real Return/Tab key presses.
+    private func type(_ text: String) {
+        var run = ""
+        func flushRun() {
+            typeRun(run)
+            run = ""
+        }
+        for character in text {
+            switch character {
+            case "\n", "\r", "\r\n":
+                flushRun()
+                postKey(.return, modifiers: [])
+            case "\t":
+                flushRun()
+                postKey(.tab, modifiers: [])
+            default:
+                run.append(character)
+            }
+        }
+        flushRun()
+    }
+
+    private func typeRun(_ run: String) {
+        var chunk: [UniChar] = []
+        func post() {
+            guard !chunk.isEmpty else { return }
+            for down in [true, false] {
+                guard let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: down) else { continue }
+                event.flags = []
+                event.keyboardSetUnicodeString(stringLength: chunk.count, unicodeString: chunk)
+                event.post(tap: .cghidEventTap)
+            }
+            chunk.removeAll(keepingCapacity: true)
+        }
+        // Split on character boundaries so a surrogate pair or emoji sequence never straddles events.
+        for character in run {
+            let units = Array(String(character).utf16)
+            if chunk.count + units.count > Self.maxUnitsPerTextEvent { post() }
+            chunk.append(contentsOf: units)
+        }
+        post()
     }
 
     /// Media/function keys travel as NSEvent system-defined events (subtype 8, AUX
