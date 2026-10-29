@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-/// Every feel-related knob in one place. Tweak these while testing on the phone.
+/// Every feel- and timing-related knob in one place. Tweak these while testing on the phone.
 enum Tuning {
     // MARK: Pointer
 
@@ -23,11 +23,30 @@ enum Tuning {
     /// Momentum ends when speed falls below this (pt/s).
     static let momentumStopSpeed: CGFloat = 25
 
-    // MARK: Taps
+    // MARK: Taps and drag
 
     /// A touch that strays further than this is a drag, not a tap; the cursor also
     /// ignores motion inside this radius so a tap can't nudge it.
     static let tapSlop: CGFloat = 6
     static let tapMaxDuration: TimeInterval = 0.25
+    /// Max gap between taps for a double-click, and for tap-then-hold-and-move to become a drag.
     static let doubleTapInterval: TimeInterval = 0.30
+
+    // MARK: Connection
+
+    /// After an unexpected drop (or returning to the foreground), keep retrying the same Mac this long.
+    static let reconnectWindow: TimeInterval = 15
+    /// After pairing, how long to wait for the new Mac to show up in Bonjour before giving up.
+    static let pairConnectWindow: TimeInterval = 20
+    /// A single connection attempt (TLS + hello/welcome) that takes longer than this is abandoned.
+    static let connectAttemptTimeout: TimeInterval = 8
+
+    // MARK: Screen
+
+    /// Without a touch for this long, the phone is allowed to auto-lock again.
+    static let idleLockDelay: TimeInterval = 5 * 60
+
+    // MARK: Sleep timer
+
+    static let sleepTimerMinutes = [15, 30, 45, 60, 90]
 }
