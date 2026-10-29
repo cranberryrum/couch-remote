@@ -1,7 +1,54 @@
 # CouchRemote
 
-A personal iPhone app that controls a Mac (cursor, clicks, scroll, media keys, typing) over Wi-Fi,
-for watching YouTube/Netflix from bed. Personal use only: no App Store, no sandbox.
+**Turn your iPhone into a trackpad, keyboard and media remote for your Mac, over Wi-Fi.**
+
+## About
+
+CouchRemote exists for one situation: the laptop is across the room (or closed, driving an external
+monitor), you're in bed or on the couch watching YouTube or Netflix in a browser, and you don't want to
+get up to pause, skip, fix the volume, or type a search. It's two small native apps:
+
+- **RemoteMac**, a menu-bar agent on the Mac that turns what it receives into real mouse, scroll,
+  keyboard and media-key events.
+- **RemoteiPhone**, the controller: a full-screen multi-touch trackpad, a media bar, a keyboard that
+  mirrors to the Mac (including the system keyboard's dictation), and a few conveniences for watching video.
+
+**What it does**
+
+- **Trackpad:** one-finger cursor with pointer acceleration, tap to click, double-tap, two-finger tap to
+  right-click, two-finger scroll with momentum, and tap-then-hold-and-move to drag. Motion is sent once per
+  display frame, so it stays responsive on a ProMotion screen.
+- **Media and movie keys:** play/pause, seek, volume (via system media keys, so a browser's now-playing
+  session responds), plus fullscreen, mute, captions, Esc and previous/next tab.
+- **Typing:** the real iOS keyboard, diffed against what's already typed, so autocorrect, predictive text
+  and dictation revisions land correctly on the Mac. Emoji and any language work.
+- **Several Macs:** pair your iPhone with more than one Mac and pick which to control. Nothing connects
+  automatically; a dropped link resumes the same Mac for a few seconds, then gives up.
+- **Sleep timer:** the Mac keeps it, so it still sleeps if your phone locks. Plus a night mode, and the
+  phone is allowed to auto-lock after a few minutes.
+- **Mac niceties:** keeps the display awake while a phone is connected, launch at login, accept/refuse
+  connections, and a pairing window with a QR code.
+
+**Security.** A remote that can type on your computer must not be open to the whole Wi-Fi network, and
+laptops join café and office networks. So every connection is TLS 1.2 with a per-phone pre-shared key
+(no plaintext fallback), keys are created by scanning a short-lived QR code and stored in the Keychain on
+both sides, and the Mac only lets a phone take over after it proves which pairing it is. Details are in
+[How pairing and security work](#how-pairing-and-security-work).
+
+**How it's built.** Swift 6 and SwiftUI throughout, Network.framework for discovery (Bonjour) and the
+encrypted transport, a small hand-rolled binary protocol, and **no third-party dependencies**. One shared
+Swift package, `RemoteKit`, holds the wire protocol, pairing rules and transport, and is covered by unit
+tests, including real TLS handshakes (right key, wrong key, unknown identity, plaintext peer). The Xcode
+project is generated from `project.yml` with XcodeGen, and `scripts/release-mac.sh` produces a notarized,
+stapled DMG for the Mac app.
+
+**Scope.** This is a personal project, built for one person's couch. The iPhone app is installed from Xcode
+and the Mac app is distributed as a notarized DMG outside the App Store, because it needs the Accessibility
+permission and can't be sandboxed. It is not affiliated with or endorsed by Apple. Expect rough edges, and
+read the code before running it on a machine you care about; the security model above is the part I'd
+review first.
+
+## Overview
 
 ```
 RemoteiPhone ──TLS-PSK over TCP (Bonjour _couchremote._tcp)──▶ RemoteMac (menu-bar agent) ──▶ CGEvent / media keys
