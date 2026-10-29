@@ -4,14 +4,18 @@ import UIKit
 
 struct TrackpadView: UIViewRepresentable {
     let client: RemoteClient
+    var night = false
 
     func makeUIView(context: Context) -> TrackpadUIView {
         let view = TrackpadUIView()
         view.send = { [client] message in client.send(message) }
+        view.backgroundColor = Theme(night: night).surfaceUIColor
         return view
     }
 
-    func updateUIView(_ uiView: TrackpadUIView, context: Context) {}
+    func updateUIView(_ uiView: TrackpadUIView, context: Context) {
+        uiView.backgroundColor = Theme(night: night).surfaceUIColor
+    }
 }
 
 /// Raw multi-touch surface. A "session" runs from first finger down to last finger up.
@@ -19,6 +23,7 @@ struct TrackpadView: UIViewRepresentable {
 /// - 1 finger drags the cursor (deltas coalesced and sent once per display frame).
 /// - 2 fingers scroll (with synthesized momentum); a quick still 2-finger touch is a right click.
 /// - A quick still 1-finger touch is a left click; repeated taps escalate the click count.
+/// - Tap, then touch down again quickly and move: a drag (button held until lift-off).
 /// - 3+ fingers are ignored.
 final class TrackpadUIView: UIView {
     var send: (Message) -> Void = { _ in }
@@ -59,6 +64,10 @@ final class TrackpadUIView: UIView {
     // Taps
     private var lastTap: (time: TimeInterval, count: Int)?
 
+    // Drag (tap-then-hold-and-move)
+    private var dragCandidate = false
+    private var isDragging = false
+
     private var displayLink: CADisplayLink?
     private let haptic = UIImpactFeedbackGenerator(style: .light)
 
@@ -85,10 +94,7 @@ final class TrackpadUIView: UIView {
     }
 
     @objc private func tick(_ link: CADisplayLink) {
-        if pendingMove != .zero {
-            send(.move(dx: Float(pendingMove.dx), dy: Float(pendingMove.dy)))
-            pendingMove = .zero
-        }
+        flushMove()
         flushScroll()
         stepMomentum(frameDuration: link.targetTimestamp - link.timestamp)
 
@@ -115,10 +121,17 @@ final class TrackpadUIView: UIView {
             lastPointerTimestamp = touches.first?.timestamp ?? 0
         case 2:
             if mode == .pointer {
-                mode = .scroll
-                scrollCentroid = centroid()
+                if isDragging {
+                    // A second finger lands mid-drag: let go and ignore the rest of the gesture.
+                    endDrag()
+                    mode = .spent
+                } else {
+                    mode = .scroll
+                    scrollCentroid = centroid()
+                }
             }
         default:
+            endDragIfNeeded()
             if mode == .scroll { endScroll(at: touches.first?.timestamp ?? 0) }
             mode = .spent
         }
@@ -146,6 +159,7 @@ final class TrackpadUIView: UIView {
                 add(delta, to: &heldBackPointer)
                 if maxTravel > Tuning.tapSlop {
                     pointerEngaged = true
+                    if dragCandidate && maxTouches == 1 { beginDrag() }
                     add(accelerated(heldBackPointer, dt: dt), to: &pendingMove)
                     heldBackPointer = .zero
                 }
@@ -192,6 +206,7 @@ final class TrackpadUIView: UIView {
             mode = .spent
         }
         if touchStarts.isEmpty {
+            endDragIfNeeded()
             if !cancelled { evaluateTap(endTime: endTime) }
             mode = .idle
         }
@@ -206,6 +221,9 @@ final class TrackpadUIView: UIView {
         maxTravel = 0
         pointerEngaged = false
         heldBackPointer = .zero
+        // Touching down again soon after a tap arms a drag (it fires once the finger moves).
+        dragCandidate = lastTap.map { time - $0.time < Tuning.doubleTapInterval } ?? false
+        isDragging = false
         scrollBegan = false
         heldBackScroll = .zero
         scrollCentroid = nil
@@ -226,6 +244,30 @@ final class TrackpadUIView: UIView {
     }
 
     // MARK: Pointer
+
+    private func flushMove() {
+        guard pendingMove != .zero else { return }
+        send(.move(dx: Float(pendingMove.dx), dy: Float(pendingMove.dy)))
+        pendingMove = .zero
+    }
+
+    private func beginDrag() {
+        isDragging = true
+        lastTap = nil // this touch is a drag, not the second half of a double-click
+        send(.button(.left, .down))
+        haptic.impactOccurred()
+    }
+
+    /// Releases the button after the last queued motion, so the drop lands where the finger was.
+    private func endDrag() {
+        flushMove()
+        send(.button(.left, .up))
+        isDragging = false
+    }
+
+    private func endDragIfNeeded() {
+        if isDragging { endDrag() }
+    }
 
     private func accelerated(_ delta: CGVector, dt: TimeInterval) -> CGVector {
         let seconds = max(dt, 1.0 / 240)
