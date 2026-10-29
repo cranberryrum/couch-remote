@@ -13,12 +13,30 @@ settings:
     SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
     DEVELOPMENT_TEAM: 5PYDBJJN92
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.2.0"
+    CURRENT_PROJECT_VERSION: "2"
 
 packages:
   RemoteKit:
     path: Packages/RemoteKit
+
+schemes:
+  RemoteMac:
+    build:
+      targets:
+        RemoteMac: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  RemoteiPhone:
+    build:
+      targets:
+        RemoteiPhone: all
+    run:
+      config: Debug
+    archive:
+      config: Release
 
 targets:
   RemoteMac:
@@ -60,8 +78,13 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         NSLocalNetworkUsageDescription: CouchRemote connects to your Mac on the local network to control it.
+        NSCameraUsageDescription: CouchRemote scans the QR code on your Mac to pair with it.
         NSBonjourServices:
           - _couchremote._tcp
+        CFBundleURLTypes:
+          - CFBundleURLName: com.adityakolte.couchremote
+            CFBundleURLSchemes:
+              - couchremote
     settings:
       base:
         PRODUCT_NAME: CouchRemote

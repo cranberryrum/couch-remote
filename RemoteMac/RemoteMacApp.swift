@@ -23,6 +23,8 @@ struct RemoteMacApp: App {
 private struct MenuView: View {
     let model: AppModel
 
+    private var server: RemoteServer { model.server }
+
     var body: some View {
         Text("CouchRemote")
 
@@ -33,13 +35,49 @@ private struct MenuView: View {
             systemImage: model.accessibilityGranted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
         )
         Label(
-            model.server.isListening ? "Listening" : "Not listening",
-            systemImage: model.server.isListening ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash"
+            listeningText,
+            systemImage: server.isListening ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash"
         )
-        Label(connectionText, systemImage: model.server.isClientConnected ? "iphone.gen3" : "iphone.slash")
+        Label(connectionText, systemImage: server.isClientConnected ? "iphone.gen3" : "iphone.slash")
+        if let notice = server.notice {
+            Label(notice, systemImage: "exclamationmark.triangle")
+        }
+        if let phone = server.connectedPhone {
+            Button("Disconnect \(phone.name)") { server.disconnectActive(reason: .userRequested) }
+        }
 
         Divider()
 
+        Toggle("Accept connections", isOn: Binding(
+            get: { server.isAccepting },
+            set: { server.setAccepting($0) }
+        ))
+        Button("Pair New iPhone…") { model.beginPairing() }
+        Menu("Paired iPhones (\(model.pairing.phones.count))") {
+            if model.pairing.phones.isEmpty {
+                Text("None yet")
+            } else {
+                ForEach(model.pairing.phones) { phone in
+                    Button("Forget “\(phone.name)”") { server.forgetPhone(phone.pairingID) }
+                }
+            }
+        }
+
+        if let remaining = model.sleepTimer.remainingSeconds() {
+            Divider()
+            Label("Sleeping in \(clock(remaining))", systemImage: "moon.zzz.fill")
+            Button("Cancel sleep timer") {
+                model.sleepTimer.cancel()
+                server.pushStatus()
+            }
+        }
+
+        Divider()
+
+        Toggle("Launch at login", isOn: Binding(
+            get: { model.launchAtLogin.isEnabled },
+            set: { model.launchAtLogin.set($0) }
+        ))
         Button("Open Accessibility Settings") { AccessibilityPermission.openSettings() }
 
         Divider()
@@ -48,8 +86,17 @@ private struct MenuView: View {
             .keyboardShortcut("q")
     }
 
+    private var listeningText: String {
+        if !server.isAccepting { return "Not accepting connections" }
+        return server.isListening ? "Listening" : "Starting…"
+    }
+
     private var connectionText: String {
-        guard model.server.isClientConnected else { return "No device connected" }
-        return "Connected: \(model.server.deviceName ?? "device")"
+        guard let phone = server.connectedPhone else { return "No device connected" }
+        return "Connected: \(phone.name)"
+    }
+
+    private func clock(_ seconds: Int) -> String {
+        String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 }
