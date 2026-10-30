@@ -63,6 +63,7 @@ RemoteiPhone ──TLS-PSK over TCP (Bonjour _couchremote._tcp)──▶ RemoteM
 | `RemoteMac` | macOS 14+ menu-bar app (LSUIElement, sandbox off, hardened runtime on). |
 | `RemoteiPhone` | iOS 17+ SwiftUI app. |
 | `RemoteiPhone/Tuning.swift` | **All feel and timing constants** (pointer, scroll, taps/drag, reconnect window, idle-lock delay, sleep-timer choices). |
+| `scripts/` | `release-mac.sh` (notarized DMG), `make-icons.swift` (draws the app icon and writes both asset catalogs: edit and re-run to restyle). |
 
 ## How pairing and security work
 
