@@ -51,6 +51,9 @@ targets:
       properties:
         CFBundleName: CouchRemote
         CFBundleDisplayName: CouchRemote
+        # XcodeGen otherwise writes literal 1.0 / 1; take them from the build settings below.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true
         NSLocalNetworkUsageDescription: CouchRemote listens for your iPhone on the local network.
         NSBonjourServices:
@@ -74,6 +77,9 @@ targets:
       properties:
         CFBundleName: CouchRemote
         CFBundleDisplayName: CouchRemote
+        # XcodeGen otherwise writes literal 1.0 / 1; take them from the build settings below.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
