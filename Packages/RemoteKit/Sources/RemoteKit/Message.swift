@@ -30,6 +30,8 @@ public enum MediaKey: UInt8, Sendable, CaseIterable {
     case previous = 2
     case volumeUp = 3
     case volumeDown = 4
+    case brightnessUp = 5
+    case brightnessDown = 6
 }
 
 public enum KeyCode: UInt8, Sendable, CaseIterable {
@@ -51,6 +53,10 @@ public enum KeyCode: UInt8, Sendable, CaseIterable {
     case l = 14
     case t = 15
     case w = 16
+    // Browser zoom (⌘= / ⌘- / ⌘0).
+    case equal = 17
+    case minus = 18
+    case zero = 19
 }
 
 public struct KeyModifiers: OptionSet, Sendable, Hashable {
@@ -115,8 +121,10 @@ public enum Message: Sendable, Equatable {
 }
 
 extension Message {
-    /// Bumped whenever the wire format changes incompatibly.
-    public static let protocolVersion: UInt8 = 2
+    /// Bumped whenever the wire format changes in a way an older peer can't handle. v3 appended
+    /// key/media values (zoom, brightness): an older Mac would treat them as a protocol error and
+    /// drop the link, so a mismatch is reported up front ("Update the other app") instead.
+    public static let protocolVersion: UInt8 = 3
 
     public static let maxNameLength = 64
     public static let maxTextBytes = 200

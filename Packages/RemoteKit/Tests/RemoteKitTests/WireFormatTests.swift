@@ -25,10 +25,12 @@ private let samples: [Message] = [
     .scroll(dx: 0, dy: 3, phase: .momentumChanged),
     .scroll(dx: 0, dy: 0, phase: .momentumEnded),
     .media(.playPause), .media(.next), .media(.previous), .media(.volumeUp), .media(.volumeDown),
+    .media(.brightnessUp), .media(.brightnessDown),
     .key(.arrowLeft), .key(.arrowRight), .key(.space),
     .key(.return), .key(.backspace), .key(.escape), .key(.tab, modifiers: [.control, .shift]),
     .key(.arrowUp), .key(.arrowDown), .key(.f), .key(.t, modifiers: .command),
     .key(.w, modifiers: [.command, .shift, .control, .option]),
+    .key(.equal, modifiers: .command), .key(.minus, modifiers: .command), .key(.zero, modifiers: .command),
     .text("hello"), .text("émoji 👨‍👩‍👧‍👦 日本語"), .text(""),
     .sleepTimer(minutes: 0), .sleepTimer(minutes: 45), .sleepTimer(minutes: .max),
     .macStatus(MacStatus()), .macStatus(MacStatus(sleepTimerRemaining: 0)),
@@ -72,6 +74,16 @@ private let samples: [Message] = [
         #expect(ScrollPhase.began.rawValue == 0 && ScrollPhase.momentumEnded.rawValue == 5)
         #expect(MouseButton.left.rawValue == 0 && MouseButton.right.rawValue == 1)
         #expect(ButtonState.up.rawValue == 0 && ButtonState.down.rawValue == 1)
+    }
+
+    @Test func valuesAddedLaterAreAppendedNotRenumbered() {
+        #expect(MediaKey.brightnessUp.rawValue == 5 && MediaKey.brightnessDown.rawValue == 6)
+        #expect(KeyCode.equal.rawValue == 17 && KeyCode.minus.rawValue == 18 && KeyCode.zero.rawValue == 19)
+        #expect(KeyCode.w.rawValue == 16) // last value from before zoom was added
+    }
+
+    @Test func protocolVersionIsBumpedForAppendedValues() {
+        #expect(Message.protocolVersion == 3)
     }
 
     @Test func stage1KeyPayloadWithoutModifiersStillDecodes() throws {

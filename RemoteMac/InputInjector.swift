@@ -168,6 +168,9 @@ final class InputInjector {
         case .l: 37
         case .t: 17
         case .w: 13
+        case .equal: 24
+        case .minus: 27
+        case .zero: 29
         }
     }
 
@@ -245,6 +248,10 @@ final class InputInjector {
         case .previous: keyType = NX_KEYTYPE_PREVIOUS
         case .volumeUp: keyType = NX_KEYTYPE_SOUND_UP
         case .volumeDown: keyType = NX_KEYTYPE_SOUND_DOWN
+        // Same path as the brightness keys on the keyboard: built-in and Apple displays respond;
+        // a third-party external monitor usually doesn't.
+        case .brightnessUp: keyType = NX_KEYTYPE_BRIGHTNESS_UP
+        case .brightnessDown: keyType = NX_KEYTYPE_BRIGHTNESS_DOWN
         }
         for down in [true, false] {
             let state = down ? 0xA : 0xB
