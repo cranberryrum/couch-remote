@@ -1,0 +1,47 @@
+[
+  {
+    "file": "04-header/3840x1646/header.png",
+    "dimensions": [
+      3840,
+      1646
+    ],
+    "alpha": false,
+    "profile": "sRGB"
+  },
+  {
+    "file": "04-header/5244x2950/header.png",
+    "dimensions": [
+      5244,
+      2950
+    ],
+    "alpha": false,
+    "profile": "sRGB"
+  },
+  {
+    "file": "05-search-results/3840x2560/search-results.png",
+    "dimensions": [
+      3840,
+      2560
+    ],
+    "alpha": false,
+    "profile": "sRGB"
+  },
+  {
+    "file": "05-search-results/5244x2950/search-results.png",
+    "dimensions": [
+      5244,
+      2950
+    ],
+    "alpha": false,
+    "profile": "sRGB"
+  },
+  {
+    "file": "05-search-results/1920x1280/search-results.png",
+    "dimensions": [
+      1920,
+      1280
+    ],
+    "alpha": false,
+    "profile": "sRGB"
+  }
+]

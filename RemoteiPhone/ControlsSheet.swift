@@ -7,6 +7,7 @@ struct ControlsSheet: View {
     @Binding var night: Bool
 
     @Environment(\.theme) private var theme
+    @State private var showGetMac = false
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 3)
 
@@ -87,12 +88,35 @@ struct ControlsSheet: View {
                         .frame(minHeight: 56)
                     }
                 }
+
+                section("Mac app") {
+                    Card {
+                        Button { showGetMac = true } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "arrow.down.circle")
+                                    .frame(width: 24)
+                                Text("Get the Mac app")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(theme.secondary)
+                            }
+                            .font(.body)
+                            .foregroundStyle(theme.foreground)
+                            .padding(.horizontal, 16)
+                            .frame(minHeight: 56)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 28)
         }
         .scrollBounceBehavior(.basedOnSize)
         .background(theme.sheetBackground)
+        .getMacAppSheet(isPresented: $showGetMac, theme: theme)
     }
 
     private func section<Content: View>(

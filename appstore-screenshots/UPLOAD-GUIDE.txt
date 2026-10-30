@@ -1,0 +1,15 @@
+UPLOAD GUIDE
+
+Use ONE size subfolder for each upload slot; alternate size folders contain the same artwork.
+
+01-iphone-dynamic-island: Drag all five PNGs from 1206x2622 (or 1179x2556) into the iPhone with Dynamic Island slot.
+02-iphone-duo: Drag all five PNGs from 2007x2853 (or 1398x2034) into the iPhone Duo slot.
+03-ipad-13-inch: Drag all five PNGs from 2064x2752 (or 2048x2732) into the iPad 13-inch slot.
+04-header: Drag the single PNG from either size subfolder into Header.
+05-search-results: Drag the single PNG from one size subfolder into Search Results.
+
+All files use the approved #181818 background, RGB PNG, embedded sRGB, and no alpha.
+The Duo and iPad sets preserve the supplied iPhone artwork without stretching; these are marketing layouts using iPhone captures, not native Duo/iPad captures.
+Header and Search Results each show the five designs in one landscape image.
+No Apple Watch files were created because no Watch captures or dimensions were supplied.
+The five PNGs at this folder's top level are the original 1290x2796 set; use the size-specific subfolders for the slots in your screenshots.

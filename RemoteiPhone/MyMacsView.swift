@@ -8,6 +8,12 @@ struct MyMacsView: View {
 
     @Environment(\.theme) private var theme
     @State private var showScanner = false
+    #if DEBUG
+    // Test hook: COUCHREMOTE_DEBUG_OPEN_GET_MAC=1 opens the sheet at launch (simulator screenshots).
+    @State private var showGetMac = ProcessInfo.processInfo.environment["COUCHREMOTE_DEBUG_OPEN_GET_MAC"] != nil
+    #else
+    @State private var showGetMac = false
+    #endif
     @State private var renaming: PairedMac?
     @State private var renameText = ""
     @State private var forgetting: PairedMac?
@@ -53,10 +59,23 @@ struct MyMacsView: View {
                     .frame(maxWidth: .infinity, minHeight: 56)
             }
             .buttonStyle(TapStyle(radius: Radius.card))
+
+            // Always reachable: a friend who just installed the phone app starts here.
+            Button {
+                showGetMac = true
+            } label: {
+                Label("Get the Mac app", systemImage: "arrow.down.circle")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(theme.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(IconButtonStyle())
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
-        .padding(.bottom, 12)
+        .padding(.bottom, 8)
+        .getMacAppSheet(isPresented: $showGetMac, theme: theme)
         .sheet(isPresented: $showScanner) {
             PairingScannerView { code in
                 guard let url = URL(string: code), PairingInvite(url: url) != nil else { return false }
@@ -88,22 +107,45 @@ struct MyMacsView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 18) {
             Spacer()
             Image(systemName: "laptopcomputer.and.iphone")
-                .font(.system(size: 44))
+                .font(.system(size: 40))
                 .foregroundStyle(theme.secondary)
-            Text("No Macs yet")
-                .font(.title3.weight(.semibold))
+            Text("Set up your Mac")
+                .font(.title2.bold())
                 .foregroundStyle(theme.foreground)
-            Text("On your Mac, open the CouchRemote menu and choose “Pair New iPhone…”, then scan the code.")
-                .font(.subheadline)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(theme.secondary)
+            VStack(alignment: .leading, spacing: 14) {
+                emptyStep(1, "Get the free CouchRemote app on your Mac.")
+                emptyStep(2, "Open it and choose “Pair New iPhone…” from its menu-bar icon.")
+                emptyStep(3, "Tap “Pair another Mac” below and scan the code.")
+            }
+            Button {
+                showGetMac = true
+            } label: {
+                Label("Get the Mac app", systemImage: "arrow.down.circle")
+                    .font(.headline)
+                    .foregroundStyle(theme.foreground)
+                    .frame(maxWidth: .infinity, minHeight: 52)
+            }
+            .buttonStyle(TapStyle(radius: Radius.card, prominent: true))
             Spacer()
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+    }
+
+    private func emptyStep(_ number: Int, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text("\(number)")
+                .font(.footnote.weight(.bold).monospacedDigit())
+                .foregroundStyle(theme.foreground)
+                .frame(width: 24, height: 24)
+                .background(theme.controlFill, in: Circle())
+            Text(text)
+                .font(.body)
+                .foregroundStyle(theme.foreground)
+        }
     }
 
     private var macList: some View {
