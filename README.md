@@ -16,10 +16,11 @@ get up to pause, skip, fix the volume, or type a search. It's two small native a
 **What it does**
 
 - **Trackpad:** one-finger cursor with pointer acceleration, tap to click, double-tap, two-finger tap to
-  right-click, two-finger scroll with momentum, and tap-then-hold-and-move to drag. Motion is sent once per
-  display frame, so it stays responsive on a ProMotion screen.
+  right-click, two-finger scroll with momentum, pinch to zoom, and tap-then-hold-and-move to drag. Motion is
+  sent once per display frame, so it stays responsive on a ProMotion screen.
 - **Media and movie keys:** play/pause, seek, volume (via system media keys, so a browser's now-playing
-  session responds), plus fullscreen, mute, captions, Esc and previous/next tab.
+  session responds) on one calm row; a pull-up **Controls** sheet holds fullscreen, mute, captions, Esc,
+  previous/next tab, display brightness, zoom, the sleep timer and night mode.
 - **Typing:** the real iOS keyboard, diffed against what's already typed, so autocorrect, predictive text
   and dictation revisions land correctly on the Mac. Emoji and any language work.
 - **Several Macs:** pair your iPhone with more than one Mac and pick which to control. Nothing connects
@@ -125,17 +126,24 @@ code signature.
 | 2-finger tap | Right click |
 | 2-finger drag | Scroll (natural direction, with momentum) |
 | Tap, then touch down again and move | Drag (button held until lift-off) |
+| Pinch (two fingers apart / together) | Zoom the page in / out (⌘= / ⌘-), one step per `Tuning.pinchStepDistance` |
 
-Other controls: seek ⏪/⏩ (arrow keys), play/pause, volume; a second row with **Fullscreen (F)**, **Mute (M)**,
-**Captions (C)**, **Esc**, **Prev/Next tab** (⌃⇧⇥ / ⌃⇥); a **keyboard** button (system keyboard with
-dictation, mirrored live to the Mac, plus an Esc/Tab/arrows/⌘/Done row); a **sleep timer**
-(15/30/45/60/90 min, runs on the Mac so it still fires if the phone locks); a **night mode** moon toggle
-(true black, dim warm accents). The phone is allowed to auto-lock after 5 minutes without a touch.
+**Main screen:** the connection (Mac name, latency), a **keyboard** button (system keyboard with dictation,
+mirrored live to the Mac, plus an Esc/Tab/arrows/⌘/Done row), a **•••** button, the trackpad, and one row of
+playback buttons: seek ⏪/⏩ (arrow keys), play/pause, volume. Seek and volume fire on touch-down and repeat
+while held.
+
+**Controls sheet (•••):** **Fullscreen (F)**, **Mute (M)**, **Captions (C)**, **Esc**, **Prev/Next tab**
+(⌃⇧⇥ / ⌃⇥); **Brightness** −/+ (the Mac's brightness keys: built-in and Apple displays respond, most
+third-party monitors don't); **Zoom** −/reset/+ (⌘- / ⌘0 / ⌘=: browser page zoom); a **sleep timer**
+(15/30/45/60/90 min, runs on the Mac so it still fires if the phone locks); and **night mode** (true black,
+dim warm accents). The phone is allowed to auto-lock after 5 minutes without a touch.
 
 ### Tweaking the feel
 
-- Cursor speed/acceleration, scroll gain, momentum, tap/drag thresholds, reconnect window, idle-lock delay:
-  `RemoteiPhone/Tuning.swift`.
+- Cursor speed/acceleration, scroll gain, momentum, tap/drag thresholds, pinch step size and scroll-vs-pinch
+  bias, hold-to-repeat timing, reconnect window, idle-lock delay: `RemoteiPhone/Tuning.swift`.
+- Corner radii and animation curves/durations: `Radius` and `Motion` in `RemoteiPhone/Theme.swift`.
 - Scroll backwards on the Mac: flip `invertScroll` at the top of `RemoteMac/InputInjector.swift`.
 - Letter shortcuts assume a US/ANSI key layout (they send virtual key codes).
 
@@ -189,11 +197,18 @@ DEBUG builds only: `COUCHREMOTE_DEBUG_PAIRING_URL_FILE=<path>` makes the Mac ope
 launch and write its URL to that file, and `COUCHREMOTE_DEBUG_PAIR_URL=<url>` makes the phone app pair from
 a URL at launch (used for simulator testing, which has no camera). Neither exists in Release builds.
 
-## Wire protocol (v2)
+## Wire protocol (v3)
 
 Frame: `[u32 big-endian length][payload]`, payload `[u8 tag][fields…]`, max 1024 bytes. `hello`/`welcome`
 begin with the protocol version so a mismatch is reported cleanly ("Update the other app"). Messages:
 `hello` · `welcome` · `move` · `button` · `click` · `scroll` · `media` · `key(code, modifiers)` · `text` ·
 `sleepTimer` · `macStatus` (tag/length/value, unknown entries skipped, so stage 3 can add now-playing,
 volume and output device) · `disconnect(reason)` · `ping`/`pong`. Existing enum raw values never change,
-only get appended. Details: `Packages/RemoteKit/Sources/RemoteKit/WireFormat.swift`.
+only get appended. The version is bumped whenever appended values would trip up an older peer (v3 added zoom
+keys and brightness media keys), so an out-of-date app shows "Update the other app" instead of dropping the
+link: **after upgrading, update both the Mac app and the iPhone app.**
+Details: `Packages/RemoteKit/Sources/RemoteKit/WireFormat.swift`.
+
+## License
+
+[MIT](LICENSE) © 2026 Aditya Kolte.
