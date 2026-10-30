@@ -8,6 +8,7 @@ struct ControlsSheet: View {
 
     @Environment(\.theme) private var theme
     @State private var showGetMac = false
+    @State private var showAbout = false
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 3)
 
@@ -89,13 +90,31 @@ struct ControlsSheet: View {
                     }
                 }
 
-                section("Mac app") {
+                section("Mac app and about") {
                     Card {
                         Button { showGetMac = true } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "arrow.down.circle")
                                     .frame(width: 24)
                                 Text("Get the Mac app")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(theme.secondary)
+                            }
+                            .font(.body)
+                            .foregroundStyle(theme.foreground)
+                            .padding(.horizontal, 16)
+                            .frame(minHeight: 56)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        RowDivider()
+                        Button { showAbout = true } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "person.crop.circle")
+                                    .frame(width: 24)
+                                Text("About the creator")
                                 Spacer()
                                 Image(systemName: "chevron.right")
                                     .font(.footnote.weight(.semibold))
@@ -117,6 +136,7 @@ struct ControlsSheet: View {
         .scrollBounceBehavior(.basedOnSize)
         .background(theme.sheetBackground)
         .getMacAppSheet(isPresented: $showGetMac, theme: theme)
+        .aboutSheet(isPresented: $showAbout, theme: theme)
     }
 
     private func section<Content: View>(
@@ -143,7 +163,7 @@ struct ControlsSheet: View {
 
 // MARK: Pieces
 
-private struct Card<Content: View>: View {
+struct Card<Content: View>: View {
     @ViewBuilder var content: Content
     @Environment(\.theme) private var theme
 
@@ -153,7 +173,7 @@ private struct Card<Content: View>: View {
     }
 }
 
-private struct RowDivider: View {
+struct RowDivider: View {
     @Environment(\.theme) private var theme
 
     var body: some View {

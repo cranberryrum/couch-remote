@@ -9,9 +9,11 @@ struct MyMacsView: View {
     @Environment(\.theme) private var theme
     @State private var showScanner = false
     #if DEBUG
-    // Test hook: COUCHREMOTE_DEBUG_OPEN_GET_MAC=1 opens the sheet at launch (simulator screenshots).
+    // Test hooks: COUCHREMOTE_DEBUG_OPEN_ABOUT=1 / COUCHREMOTE_DEBUG_OPEN_GET_MAC=1 opens the sheet at launch (simulator screenshots).
+    @State private var showAbout = ProcessInfo.processInfo.environment["COUCHREMOTE_DEBUG_OPEN_ABOUT"] != nil
     @State private var showGetMac = ProcessInfo.processInfo.environment["COUCHREMOTE_DEBUG_OPEN_GET_MAC"] != nil
     #else
+    @State private var showAbout = false
     @State private var showGetMac = false
     #endif
     @State private var renaming: PairedMac?
@@ -25,6 +27,16 @@ struct MyMacsView: View {
                     .font(.largeTitle.bold())
                     .foregroundStyle(theme.foreground)
                 Spacer()
+                Button {
+                    showAbout = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(theme.foreground)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(IconButtonStyle())
+                .accessibilityLabel("About the creator")
                 Button {
                     night.toggle()
                 } label: {
@@ -76,6 +88,7 @@ struct MyMacsView: View {
         .padding(.top, 8)
         .padding(.bottom, 8)
         .getMacAppSheet(isPresented: $showGetMac, theme: theme)
+        .aboutSheet(isPresented: $showAbout, theme: theme)
         .sheet(isPresented: $showScanner) {
             PairingScannerView { code in
                 guard let url = URL(string: code), PairingInvite(url: url) != nil else { return false }

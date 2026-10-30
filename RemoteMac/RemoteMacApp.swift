@@ -1,4 +1,5 @@
 import AppKit
+import RemoteKit
 import SwiftUI
 
 @main
@@ -81,6 +82,11 @@ private struct MenuView: View {
         Button("Open Accessibility Settings") { AccessibilityPermission.openSettings() }
 
         Divider()
+
+        Menu("Made by \(Creator.name)") {
+            Link(Creator.websiteLabel, destination: Creator.website)
+            Link("\(Creator.twitterLabel) on X", destination: Creator.twitter)
+        }
 
         Button("Quit") { NSApplication.shared.terminate(nil) }
             .keyboardShortcut("q")
