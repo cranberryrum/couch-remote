@@ -6,6 +6,16 @@
 
 <p align="center"><b>Turn your iPhone into a trackpad, keyboard and media remote for your Mac, over Wi-Fi.</b></p>
 
+<p align="center">
+  <a href="https://github.com/cranberryrum/couch-remote/releases/latest/download/CouchRemote.dmg">
+    <img src="https://img.shields.io/badge/Download%20for%20Mac-CouchRemote.dmg-0A84FF?style=for-the-badge&logo=apple&logoColor=white" alt="Download CouchRemote for Mac (DMG)">
+  </a>
+</p>
+
+<p align="center">Free · notarized · macOS 14 or later<br>
+Open the DMG, drag <b>CouchRemote</b> to Applications, then pair your iPhone from its menu-bar icon.<br>
+You also need the CouchRemote iPhone app (<a href="https://github.com/cranberryrum/couch-remote#run-it-development">build from source</a> or join the TestFlight beta).</p>
+
 ## About
 
 CouchRemote exists for one situation: the laptop is across the room (or closed, driving an external
@@ -169,6 +179,9 @@ Applications link), signs it, notarizes and staples it too -> a final Gatekeeper
 `dist/CouchRemote-<version>.dmg`. It refuses to run with uncommitted changes. The version is
 `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml`: bump it before each release. AirDrop the
 DMG to the other Mac; because it is stapled it opens without Gatekeeper warnings, even offline.
+
+To publish: the script also writes an unversioned `dist/CouchRemote.dmg`. Attach **both** files to the GitHub
+release; the unversioned one keeps the README's download button and the phone app's link working.
 
 ### First launch on the personal Mac
 

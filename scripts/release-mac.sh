@@ -132,6 +132,10 @@ step "Stapling the DMG"
 xcrun stapler staple "$DMG"
 xcrun stapler validate "$DMG"
 
+# An unversioned copy, so https://github.com/<repo>/releases/latest/download/CouchRemote.dmg
+# (the README button and the phone app's link) always serves the newest build.
+cp "$DMG" "$DIST/$APP_NAME.dmg"
+
 # --- Final Gatekeeper check ---------------------------------------------------------------
 
 step "Gatekeeper assessment"
@@ -140,3 +144,4 @@ spctl --assess --type execute --verbose=2 "$APP"
 
 printf '\n\033[32mDone.\033[0m  %s  (%s)\n' "$DMG" "$(du -h "$DMG" | cut -f1)"
 echo "Version $VERSION ($BUILD_NUMBER) from commit $(git rev-parse --short HEAD)."
+echo "Publish with: gh release create v$VERSION \"$DMG\" \"$DIST/$APP_NAME.dmg\" --title \"CouchRemote $VERSION\""
