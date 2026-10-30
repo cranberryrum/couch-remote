@@ -27,6 +27,7 @@ struct MyMacsView: View {
                         .foregroundStyle(theme.foreground)
                         .frame(width: 44, height: 44)
                 }
+                .buttonStyle(IconButtonStyle())
                 .accessibilityLabel("Night mode")
             }
 
@@ -49,9 +50,9 @@ struct MyMacsView: View {
                 Label("Pair another Mac", systemImage: "qrcode.viewfinder")
                     .font(.headline)
                     .foregroundStyle(theme.foreground)
-                    .frame(maxWidth: .infinity, minHeight: 54)
-                    .background(theme.controlFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .frame(maxWidth: .infinity, minHeight: 56)
             }
+            .buttonStyle(TapStyle(radius: Radius.card))
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -109,7 +110,9 @@ struct MyMacsView: View {
         List {
             ForEach(client.pairedMacs) { mac in
                 row(mac)
-                    .listRowBackground(theme.controlFill)
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(theme.controlFill)
+                    )
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -153,6 +156,7 @@ struct MyMacsView: View {
             } else {
                 Button("Connect") { client.connect(mac.macID) }
                     .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.roundedRectangle(radius: Radius.chip))
                     .tint(theme.night ? theme.good.opacity(0.5) : .accentColor)
                     .disabled(!online || busy)
                     .padding(.trailing, 10)
@@ -187,6 +191,6 @@ struct Banner: View {
             }
         }
         .padding(12)
-        .background(theme.controlFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(theme.controlFill, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
     }
 }

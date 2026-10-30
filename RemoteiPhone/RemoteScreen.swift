@@ -2,6 +2,9 @@ import RemoteKit
 import SwiftUI
 
 /// The remote itself, shown while connected (or while reconnecting after a drop).
+///
+/// One calm screen: who you're connected to, the trackpad, and one row of media buttons.
+/// Everything else is a swipe-down sheet (the ••• button).
 struct RemoteScreen: View {
     let client: RemoteClient
     let idle: IdleManager
@@ -9,45 +12,57 @@ struct RemoteScreen: View {
 
     @Environment(\.theme) private var theme
     @State private var keyboardActive = false
-    @State private var showSleepDialog = false
+    #if DEBUG
+    // Test hook: COUCHREMOTE_DEBUG_OPEN_CONTROLS=1 opens the sheet at launch (simulator screenshots).
+    @State private var showControls = ProcessInfo.processInfo.environment["COUCHREMOTE_DEBUG_OPEN_CONTROLS"] != nil
+    #else
+    @State private var showControls = false
+    #endif
+
+    private var isReconnecting: Bool {
+        if case .reconnecting = client.phase { return true }
+        return false
+    }
 
     var body: some View {
-        VStack(spacing: 12) {
-            StatusBar(client: client, night: $night, keyboardActive: $keyboardActive, showSleepDialog: $showSleepDialog)
+        VStack(spacing: 14) {
+            StatusBar(client: client, keyboardActive: $keyboardActive, showControls: $showControls)
 
             ZStack {
                 TrackpadView(client: client, night: theme.night)
-                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.surface, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.surface, style: .continuous)
                             .strokeBorder(theme.border, lineWidth: 1)
                     )
-                if case .reconnecting = client.phase {
+                if isReconnecting {
                     ReconnectingOverlay(client: client)
+                        .transition(.opacity)
                 }
             }
+            .animation(Motion.standard, value: isReconnecting)
 
-            if keyboardActive {
-                KeyboardInputView(client: client, isActive: $keyboardActive, onActivity: idle.noteActivity)
-                    .frame(height: 44)
-            } else {
-                MovieKeysRow(client: client)
-                ControlBar(client: client)
+            Group {
+                if keyboardActive {
+                    KeyboardInputView(client: client, isActive: $keyboardActive, onActivity: idle.noteActivity)
+                        .frame(height: 44)
+                } else {
+                    MediaBar(client: client)
+                }
             }
+            .transition(.opacity)
         }
         .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 12)
-        .confirmationDialog("Sleep timer", isPresented: $showSleepDialog, titleVisibility: .visible) {
-            ForEach(Tuning.sleepTimerMinutes, id: \.self) { minutes in
-                Button("Sleep Mac in \(minutes) min") { client.setSleepTimer(minutes: minutes) }
-            }
-            if client.macStatus?.sleepTimerRemaining != nil {
-                Button("Cancel timer", role: .destructive) { client.cancelSleepTimer() }
-            }
-            Button("Close", role: .cancel) {}
-        } message: {
-            Text("The timer runs on the Mac, so it still sleeps if this iPhone locks.")
+        .padding(.top, 6)
+        .padding(.bottom, 14)
+        .sheet(isPresented: $showControls) {
+            ControlsSheet(client: client, night: $night)
+                .environment(\.theme, theme)
+                .presentationDetents([.fraction(0.74), .large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(Radius.surface)
+                .presentationBackground(theme.sheetBackground)
+                .preferredColorScheme(.dark)
         }
     }
 }
@@ -64,40 +79,45 @@ private struct ReconnectingOverlay: View {
                 .foregroundStyle(theme.foreground)
             Button("Stop") { client.disconnect() }
                 .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: Radius.chip))
                 .tint(theme.foreground)
         }
         .padding(28)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(Color.black.opacity(0.72), in: RoundedRectangle(cornerRadius: Radius.surface, style: .continuous))
     }
 }
 
 private struct StatusBar: View {
     let client: RemoteClient
-    @Binding var night: Bool
     @Binding var keyboardActive: Bool
-    @Binding var showSleepDialog: Bool
+    @Binding var showControls: Bool
 
     @Environment(\.theme) private var theme
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             Circle()
                 .fill(dotColor)
                 .frame(width: 9, height: 9)
+                .padding(.trailing, 6)
             macMenu
-            Spacer(minLength: 4)
-            sleepButton
+            Spacer(minLength: 8)
+            SleepTimerMenu(client: client) { remaining in
+                if let remaining {
+                    Text(String(format: "%d:%02d", remaining / 60, remaining % 60))
+                        .font(.caption.weight(.medium).monospacedDigit())
+                        .foregroundStyle(theme.accent)
+                        .padding(.horizontal, 10)
+                        .frame(height: 30)
+                        .background(theme.controlFill, in: Capsule())
+                }
+            }
             iconButton(keyboardActive ? "keyboard.chevron.compact.down" : "keyboard", label: "Keyboard") {
-                keyboardActive.toggle()
+                // The strip swaps with the media bar a few times a day: a quick fade, nothing more.
+                withAnimation(Motion.quick) { keyboardActive.toggle() }
             }
-            iconButton(night ? "moon.fill" : "moon", label: "Night mode") { night.toggle() }
-            if let rtt = client.rttMs {
-                Text("\(Int(rtt.rounded())) ms")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(theme.secondary)
-                    .frame(minWidth: 38, alignment: .trailing)
-            }
+            iconButton("ellipsis.circle", label: "More controls") { showControls = true }
         }
         .padding(.horizontal, 4)
     }
@@ -126,48 +146,34 @@ private struct StatusBar: View {
             if !others.isEmpty { Divider() }
             Button("Disconnect", role: .destructive) { client.disconnect() }
         } label: {
-            HStack(spacing: 4) {
-                Text(macName)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.caption2.weight(.bold))
-            }
-            .foregroundStyle(theme.foreground)
-            .frame(minHeight: 44)
-        }
-    }
-
-    private var sleepButton: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            let remaining = client.sleepTimerRemaining(at: context.date)
-            Button {
-                showSleepDialog = true
-            } label: {
+            VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
-                    Image(systemName: remaining == nil ? "timer" : "moon.zzz.fill")
-                    if let remaining {
-                        Text(String(format: "%d:%02d", remaining / 60, remaining % 60))
-                            .font(.caption.monospacedDigit())
-                    }
+                    Text(macName)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                    Image(systemName: "chevron.down")
+                        .font(.caption2.weight(.bold))
                 }
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(remaining == nil ? theme.foreground : theme.accent)
-                .padding(.horizontal, remaining == nil ? 0 : 8)
-                .frame(minWidth: 40, minHeight: 44)
-                .background(remaining == nil ? Color.clear : theme.controlFill, in: Capsule())
+                .foregroundStyle(theme.foreground)
+                if let rtt = client.rttMs {
+                    Text("\(Int(rtt.rounded())) ms")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(theme.secondary)
+                }
             }
-            .accessibilityLabel("Sleep timer")
+            .frame(minHeight: 44, alignment: .leading)
         }
     }
 
     private func iconButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 19, weight: .regular))
                 .foregroundStyle(theme.foreground)
-                .frame(width: 40, height: 44)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
+        .buttonStyle(IconButtonStyle())
         .accessibilityLabel(label)
     }
 }
