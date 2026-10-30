@@ -113,7 +113,7 @@ extension View {
     }
 }
 
-private extension View {
+extension View {
     /// Fades up into place, `order` steps after the avatar (60 ms apart, so the whole thing lands in
     /// well under half a second). With Reduce Motion it only fades.
     func reveal(_ shown: Bool, order: Int, reduceMotion: Bool) -> some View {

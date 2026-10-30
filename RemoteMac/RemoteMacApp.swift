@@ -14,9 +14,9 @@ struct RemoteMacApp: App {
         MenuBarExtra {
             MenuView(model: model)
         } label: {
-            Image(systemName: model.server.isClientConnected
-                ? "iphone.radiowaves.left.and.right"
-                : "iphone")
+            Image(systemName: !model.accessibilityGranted
+                ? "exclamationmark.triangle"
+                : (model.server.isClientConnected ? "iphone.radiowaves.left.and.right" : "iphone"))
         }
     }
 }
@@ -31,20 +31,23 @@ private struct MenuView: View {
 
         Divider()
 
-        Label(
-            model.accessibilityGranted ? "Accessibility granted" : "Accessibility NOT granted",
-            systemImage: model.accessibilityGranted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
-        )
-        Label(
-            listeningText,
-            systemImage: server.isListening ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash"
-        )
-        Label(connectionText, systemImage: server.isClientConnected ? "iphone.gen3" : "iphone.slash")
-        if let notice = server.notice {
-            Label(notice, systemImage: "exclamationmark.triangle")
+        if !model.accessibilityGranted {
+            Button {
+                OnboardingWindowController.shared.show(model: model)
+            } label: {
+                Label("Allow Accessibility to start…", systemImage: "exclamationmark.triangle.fill")
+            }
         }
         if let phone = server.connectedPhone {
-            Button("Disconnect \(phone.name)") { server.disconnectActive(reason: .userRequested) }
+            Label("Connected: \(phone.name)", systemImage: "iphone.gen3")
+            Button("Disconnect") { server.disconnectActive(reason: .userRequested) }
+        } else {
+            Label(statusText, systemImage: server.isListening && server.isAccepting
+                ? "antenna.radiowaves.left.and.right"
+                : "antenna.radiowaves.left.and.right.slash")
+        }
+        if let notice = server.notice {
+            Label(notice, systemImage: "exclamationmark.triangle")
         }
 
         Divider()
@@ -79,7 +82,6 @@ private struct MenuView: View {
             get: { model.launchAtLogin.isEnabled },
             set: { model.launchAtLogin.set($0) }
         ))
-        Button("Open Accessibility Settings") { AccessibilityPermission.openSettings() }
 
         Divider()
 
@@ -92,14 +94,9 @@ private struct MenuView: View {
             .keyboardShortcut("q")
     }
 
-    private var listeningText: String {
+    private var statusText: String {
         if !server.isAccepting { return "Not accepting connections" }
-        return server.isListening ? "Listening" : "Starting…"
-    }
-
-    private var connectionText: String {
-        guard let phone = server.connectedPhone else { return "No device connected" }
-        return "Connected: \(phone.name)"
+        return server.isListening ? "Ready: waiting for your iPhone" : "Starting…"
     }
 
     private func clock(_ seconds: Int) -> String {

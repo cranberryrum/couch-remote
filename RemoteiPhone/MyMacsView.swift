@@ -72,17 +72,20 @@ struct MyMacsView: View {
             }
             .buttonStyle(TapStyle(radius: Radius.card))
 
-            // Always reachable: a friend who just installed the phone app starts here.
-            Button {
-                showGetMac = true
-            } label: {
-                Label("Get the Mac app", systemImage: "arrow.down.circle")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(theme.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .contentShape(Rectangle())
+            // One way in to the Mac app at a time: the empty state has its own button, so this
+            // link only shows once there are Macs.
+            if !client.pairedMacs.isEmpty {
+                Button {
+                    showGetMac = true
+                } label: {
+                    Label("Get the Mac app", systemImage: "arrow.down.circle")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(theme.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(IconButtonStyle())
             }
-            .buttonStyle(IconButtonStyle())
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)

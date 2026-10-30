@@ -24,8 +24,13 @@ final class AppModel {
     func start() {
         guard !started else { return }
         started = true
-        if !AccessibilityPermission.isTrusted { AccessibilityPermission.requestPrompt() }
         server.start()
+
+        // First run: a welcome window, not a system dialog thrown at the user the moment the app opens.
+        Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            OnboardingWindowController.shared.showIfNeeded(model: self)
+        }
 
         #if DEBUG
         // Test hook: with COUCHREMOTE_DEBUG_PAIRING_URL_FILE set, open a pairing invite at

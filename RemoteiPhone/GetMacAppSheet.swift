@@ -10,7 +10,9 @@ enum MacApp {
 /// copy it, or scan the code from another device.
 struct GetMacAppSheet: View {
     @Environment(\.theme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var copied = false
+    @State private var shown = false
 
     var body: some View {
         ScrollView {
@@ -23,6 +25,7 @@ struct GetMacAppSheet: View {
                         .font(.subheadline)
                         .foregroundStyle(theme.secondary)
                 }
+                .reveal(shown, order: 0, reduceMotion: reduceMotion)
                 .padding(.top, 28)
 
                 VStack(spacing: 10) {
@@ -45,6 +48,7 @@ struct GetMacAppSheet: View {
                     }
                     .buttonStyle(TapStyle(radius: Radius.control))
                 }
+                .reveal(shown, order: 1, reduceMotion: reduceMotion)
 
                 VStack(alignment: .leading, spacing: 14) {
                     Text("ON YOUR MAC")
@@ -52,21 +56,28 @@ struct GetMacAppSheet: View {
                         .tracking(0.6)
                         .foregroundStyle(theme.secondary)
                     step(1, "Open the link: the download starts. Open the DMG and drag CouchRemote to Applications.")
-                    step(2, "Open it and allow Accessibility when asked. A small icon appears in the menu bar.")
-                    step(3, "Choose “Pair New iPhone…” from that icon, then scan the code here.")
+                    step(2, "Open it. A short welcome walks you through the one permission it needs.")
+                    step(3, "Choose “Show pairing code” there, then scan it with this app.")
                 }
                 .padding(.leading, 4)
+                .reveal(shown, order: 2, reduceMotion: reduceMotion)
 
                 Text("Needs macOS 14 or later, on the same Wi-Fi as this iPhone.")
                     .font(.footnote)
                     .foregroundStyle(theme.secondary)
                     .padding(.horizontal, 4)
+                    .reveal(shown, order: 3, reduceMotion: reduceMotion)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 28)
         }
         .scrollBounceBehavior(.basedOnSize)
         .background(theme.sheetBackground)
+        .task {
+            // Let the sheet's own slide-in start first, then bring the content in behind it.
+            try? await Task.sleep(for: .milliseconds(50))
+            shown = true
+        }
         .task(id: copied) {
             guard copied else { return }
             try? await Task.sleep(for: .seconds(2))
@@ -94,7 +105,7 @@ extension View {
         sheet(isPresented: isPresented) {
             GetMacAppSheet()
                 .environment(\.theme, theme)
-                .presentationDetents([.large])
+                .presentationDetents([.fraction(0.66), .large])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(Radius.surface)
                 .presentationBackground(theme.sheetBackground)
