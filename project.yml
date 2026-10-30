@@ -13,8 +13,10 @@ settings:
     SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
     DEVELOPMENT_TEAM: 5PYDBJJN92
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "0.3.1"
-    CURRENT_PROJECT_VERSION: "10"
+    # The Mac app's version (release-mac.sh reads this first match). The iPhone app overrides it below to
+    # stay on the version already set up in App Store Connect.
+    MARKETING_VERSION: "0.3.2"
+    CURRENT_PROJECT_VERSION: "11"
 
 packages:
   RemoteKit:
@@ -99,6 +101,7 @@ targets:
         PRODUCT_NAME: CouchRemote
         PRODUCT_BUNDLE_IDENTIFIER: com.adityakolte.couchremote.ios
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        MARKETING_VERSION: "0.3.1"
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_MACCATALYST: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
