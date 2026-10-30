@@ -1,6 +1,10 @@
-# CouchRemote
+<p align="center">
+  <img src="docs/icon.png" width="128" height="128" alt="CouchRemote app icon">
+</p>
 
-**Turn your iPhone into a trackpad, keyboard and media remote for your Mac, over Wi-Fi.**
+<h1 align="center">CouchRemote</h1>
+
+<p align="center"><b>Turn your iPhone into a trackpad, keyboard and media remote for your Mac, over Wi-Fi.</b></p>
 
 ## About
 
