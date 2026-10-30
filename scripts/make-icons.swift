@@ -163,7 +163,21 @@ func render(size: Int, macShape: Bool) -> Data {
     }
 
     NSGraphicsContext.current = nil
-    return rep.representation(using: .png, properties: [:])!
+    return macShape ? rep.representation(using: .png, properties: [:])! : opaquePNG(rep.cgImage!)
+}
+
+/// The App Store rejects an iOS icon with an alpha channel, so the full-bleed icon is re-encoded without one.
+func opaquePNG(_ image: CGImage) -> Data {
+    let ctx = CGContext(
+        data: nil, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+    )!
+    ctx.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    let data = NSMutableData()
+    let dest = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil)!
+    CGImageDestinationAddImage(dest, ctx.makeImage()!, nil)
+    CGImageDestinationFinalize(dest)
+    return data as Data
 }
 
 // MARK: Output

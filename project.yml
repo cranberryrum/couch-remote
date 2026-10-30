@@ -14,7 +14,7 @@ settings:
     DEVELOPMENT_TEAM: 5PYDBJJN92
     CODE_SIGN_STYLE: Automatic
     MARKETING_VERSION: "0.3.1"
-    CURRENT_PROJECT_VERSION: "4"
+    CURRENT_PROJECT_VERSION: "5"
 
 packages:
   RemoteKit:
@@ -86,6 +86,8 @@ targets:
           - UIInterfaceOrientationPortrait
         NSLocalNetworkUsageDescription: CouchRemote connects to your Mac on the local network to control it.
         NSCameraUsageDescription: CouchRemote scans the QR code on your Mac to pair with it.
+        # Only standard system TLS; declared once so App Store Connect doesn't ask on every build.
+        ITSAppUsesNonExemptEncryption: false
         NSBonjourServices:
           - _couchremote._tcp
         CFBundleURLTypes:
