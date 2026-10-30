@@ -23,6 +23,20 @@ enum Tuning {
     /// Momentum ends when speed falls below this (pt/s).
     static let momentumStopSpeed: CGFloat = 25
 
+    // MARK: Pinch (zoom)
+
+    /// Change in the distance between two fingers (points) per zoom step (one ⌘= or ⌘-).
+    static let pinchStepDistance: CGFloat = 36
+    /// Two fingers count as a pinch (not a scroll) when their spread changes by more than this
+    /// multiple of how far their midpoint travels. Raise it if scrolls are misread as pinches.
+    static let pinchBias: CGFloat = 1.6
+
+    // MARK: Hold-to-repeat buttons (seek, volume, brightness, zoom)
+
+    /// Hold this long before a pressed button starts repeating.
+    static let repeatDelay: Duration = .milliseconds(350)
+    static let repeatInterval: Duration = .milliseconds(90)
+
     // MARK: Taps and drag
 
     /// A touch that strays further than this is a drag, not a tap; the cursor also

@@ -24,6 +24,7 @@ struct TrackpadView: UIViewRepresentable {
 /// - 2 fingers scroll (with synthesized momentum); a quick still 2-finger touch is a right click.
 /// - A quick still 1-finger touch is a left click; repeated taps escalate the click count.
 /// - Tap, then touch down again quickly and move: a drag (button held until lift-off).
+/// - Two fingers moving apart / together: pinch, which zooms the page (⌘= / ⌘-) a step at a time.
 /// - 3+ fingers are ignored.
 final class TrackpadUIView: UIView {
     var send: (Message) -> Void = { _ in }
@@ -32,6 +33,7 @@ final class TrackpadUIView: UIView {
         case idle
         case pointer
         case scroll
+        case pinch
         case spent // gesture finished (or unsupported); ignore until every finger lifts
     }
 
@@ -63,6 +65,12 @@ final class TrackpadUIView: UIView {
 
     // Taps
     private var lastTap: (time: TimeInterval, count: Int)?
+
+    // Pinch (two-finger zoom). The classifier decides scroll vs. pinch before a scroll begins.
+    private var classifier: TwoFingerClassifier?
+    private var pinchSteps = StepAccumulator(stepSize: Double(Tuning.pinchStepDistance))
+    private var pinchLastSpread: CGFloat = 0
+    private let selectionHaptic = UISelectionFeedbackGenerator()
 
     // Drag (tap-then-hold-and-move)
     private var dragCandidate = false
@@ -127,7 +135,16 @@ final class TrackpadUIView: UIView {
                     mode = .spent
                 } else {
                     mode = .scroll
-                    scrollCentroid = centroid()
+                    let c = centroid()
+                    scrollCentroid = c
+                    let spread = fingerSpread()
+                    pinchLastSpread = spread
+                    pinchSteps.reset()
+                    classifier = TwoFingerClassifier(
+                        startDistance: Double(spread), startX: Double(c.x), startY: Double(c.y),
+                        slop: Double(Tuning.tapSlop), pinchBias: Double(Tuning.pinchBias)
+                    )
+                    selectionHaptic.prepare()
                 }
             }
         default:
@@ -168,6 +185,16 @@ final class TrackpadUIView: UIView {
             guard touchStarts.count == 2, let previous = scrollCentroid else { return }
             let c = centroid()
             scrollCentroid = c
+            if !scrollBegan, var classifier {
+                let intent = classifier.update(distance: Double(fingerSpread()), centroidX: Double(c.x), centroidY: Double(c.y))
+                self.classifier = classifier
+                if intent == .pinch {
+                    heldBackScroll = .zero
+                    mode = .pinch
+                    updatePinch()
+                    return
+                }
+            }
             let delta = CGVector(
                 dx: (c.x - previous.x) * Tuning.scrollGain,
                 dy: (c.y - previous.y) * Tuning.scrollGain
@@ -178,12 +205,16 @@ final class TrackpadUIView: UIView {
                 if scrollSamples.count > 30 { scrollSamples.removeFirst(scrollSamples.count - 30) }
             } else {
                 add(delta, to: &heldBackScroll)
-                if maxTravel > Tuning.tapSlop {
+                // A scroll starts once the fingers have moved *and* the classifier says "scroll".
+                if maxTravel > Tuning.tapSlop, classifier?.intent != .undecided {
                     scrollBegan = true
                     add(heldBackScroll, to: &pendingScroll)
                     heldBackScroll = .zero
                 }
             }
+        case .pinch:
+            guard touchStarts.count == 2 else { return }
+            updatePinch()
         case .idle, .spent:
             break
         }
@@ -203,6 +234,9 @@ final class TrackpadUIView: UIView {
 
         if mode == .scroll && touchStarts.count < 2 {
             endScroll(at: endTime)
+            mode = .spent
+        }
+        if mode == .pinch && touchStarts.count < 2 {
             mode = .spent
         }
         if touchStarts.isEmpty {
@@ -241,6 +275,27 @@ final class TrackpadUIView: UIView {
     private func add(_ delta: CGVector, to total: inout CGVector) {
         total.dx += delta.dx
         total.dy += delta.dy
+    }
+
+    // MARK: Pinch
+
+    /// Distance between the two fingers.
+    private func fingerSpread() -> CGFloat {
+        let points = touchStarts.keys.map { $0.location(in: self) }
+        guard points.count == 2 else { return pinchLastSpread }
+        return hypot(points[0].x - points[1].x, points[0].y - points[1].y)
+    }
+
+    /// Fingers apart zoom in (⌘=), together zoom out (⌘-), one step per `Tuning.pinchStepDistance`.
+    private func updatePinch() {
+        let spread = fingerSpread()
+        let steps = pinchSteps.add(Double(spread - pinchLastSpread))
+        pinchLastSpread = spread
+        guard steps != 0 else { return }
+        for _ in 0..<abs(steps) {
+            send(.key(steps > 0 ? .equal : .minus, modifiers: .command))
+        }
+        selectionHaptic.selectionChanged()
     }
 
     // MARK: Pointer
